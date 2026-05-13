@@ -1,0 +1,5 @@
+{
+  "name": "@repo/shared-types",
+  "main": "src/index.ts",
+  "types": "src/index.ts"
+}

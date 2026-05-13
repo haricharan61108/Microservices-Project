@@ -1,159 +1,320 @@
-# Turborepo starter
+# YouTube AI Platform - Video Transcription & Summarization System
 
-This Turborepo starter is maintained by the Turborepo core team.
+A scalable microservices-based platform for processing YouTube videos with AI-powered transcription and summarization capabilities. Built with a focus on learning distributed systems, message queues, and real-time updates.
 
-## Using this example
+## Project Progress: 15% Complete
 
-Run the following command:
+### System Architecture
 
-```sh
-npx create-turbo@latest
+```
+Frontend
+   |
+   v
+API Gateway (Port 3000)
+   |
+   +--------------------+
+   |                    |
+   v                    v
+Auth Service       Video Service
+(Port 3001)
+                        |
+                        v
+                 Queue (Redis / RabbitMQ)
+                        |
+                        v
+                Transcription Worker
+                        |
+                        v
+                 AI Summary Worker
+                        |
+                        v
+                  PostgreSQL
+
+Meanwhile:
+Workers emit status events
+        |
+        v
+WebSocket Gateway
+        |
+        v
+Frontend gets live updates
 ```
 
-## What's inside?
+## What's Been Built So Far
 
-This Turborepo includes the following packages/apps:
+### ✅ Infrastructure Setup
+- **Monorepo Architecture**: Turborepo-based monorepo with Bun runtime
+- **API Gateway**: Express-based gateway for routing requests to microservices
+- **Auth Service**: User authentication service with database integration
+- **Database Layer**: Prisma 7 with PostgreSQL adapter pattern
+- **Type Safety**: Shared TypeScript types across all services
 
-### Apps and Packages
+### Project Structure
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```
+youtube-ai-platform/
+├── apps/
+│   ├── auth-service/          # Authentication microservice (Port 3001)
+│   │   └── src/
+│   │       └── index.ts       # Login & Register endpoints
+│   └── gateway/               # API Gateway (Port 3000)
+│       └── src/
+│           └── index.ts       # Routes requests to microservices
+│
+├── packages/
+│   ├── database/              # Shared database package
+│   │   ├── prisma/
+│   │   │   ├── schema.prisma  # User model
+│   │   │   └── migrations/    # Database migrations
+│   │   └── index.ts           # Prisma client with PG adapter
+│   │
+│   ├── shared-types/          # TypeScript type definitions
+│   │   └── src/
+│   │       └── index.ts       # LoginRequest, LoginResponse
+│   │
+│   └── [eslint-config, typescript-config, ui]
+│
+└── turbo.json                 # Monorepo build configuration
 ```
 
-Without global `turbo`, use your package manager:
+## Tech Stack
 
-```sh
-cd my-turborepo
-npx turbo build
-bun dlx turbo build
-bun exec turbo build
+### Core Technologies
+- **Runtime**: [Bun](https://bun.sh/) - Fast JavaScript runtime
+- **Monorepo**: [Turborepo](https://turbo.build/) - High-performance build system
+- **Language**: TypeScript - Type-safe development
+- **API Framework**: Express.js - REST API server
+- **Database**: PostgreSQL - Relational database
+- **ORM**: Prisma 7 - Modern database toolkit with adapter pattern
+
+### Libraries & Tools
+- **@prisma/adapter-pg** - PostgreSQL adapter for Prisma 7
+- **pg** - PostgreSQL client for Node.js
+- **axios** - HTTP client for service communication
+- **cors** - Cross-origin resource sharing
+
+## Key Features Implemented
+
+### 1. API Gateway (Port 3000)
+- Central entry point for all client requests
+- Routes authentication requests to auth service
+- Error handling and service communication
+
+### 2. Auth Service (Port 3001)
+- User registration with database persistence
+- Login endpoint with JWT-ready structure
+- Prisma integration for database operations
+
+### 3. Database Infrastructure
+- User model with email/password authentication
+- Prisma 7 migration system
+- Connection pooling with pg adapter pattern
+
+## Setup Instructions
+
+### Prerequisites
+- Bun installed (`curl -fsSL https://bun.sh/install | bash`)
+- PostgreSQL database running
+- Node.js (for compatibility)
+
+### Installation
+
+1. **Clone and install dependencies**
+```bash
+cd youtube-ai-platform
+bun install
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+2. **Set up database**
+```bash
+cd packages/database
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+# Create .env file
+echo 'DATABASE_URL="postgresql://user:password@localhost:5432/youtube_ai"' > .env
 
-```sh
-turbo build --filter=docs
+# Run migrations
+bunx prisma migrate dev --name init
+
+# Generate Prisma Client
+bunx prisma generate
 ```
 
-Without global `turbo`:
-
-```sh
-npx turbo build --filter=docs
-bun exec turbo build --filter=docs
-bun exec turbo build --filter=docs
+3. **Create .env for auth-service**
+```bash
+cd apps/auth-service
+cp ../../packages/database/.env .env
 ```
 
-### Develop
+### Running Services
 
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
+**Run all services with Turbo:**
+```bash
+bun run dev
 ```
 
-Without global `turbo`, use your package manager:
+**Run individual services:**
+```bash
+# Gateway
+cd apps/gateway && bun run dev
 
-```sh
-cd my-turborepo
-npx turbo dev
-bun exec turbo dev
-bun exec turbo dev
+# Auth Service
+cd apps/auth-service && bun run dev
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### Testing Endpoints
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
+**Health Check:**
+```bash
+curl http://localhost:3000/
 ```
 
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-bun exec turbo dev --filter=web
-bun exec turbo dev --filter=web
+**Register User:**
+```bash
+curl -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"password123"}'
 ```
 
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
+**Login:**
+```bash
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"password123"}'
 ```
 
-Without global `turbo`, use your package manager:
+## Key Learnings & Technical Insights
 
-```sh
-cd my-turborepo
-npx turbo login
-bun exec turbo login
-bun exec turbo login
+### 1. Prisma 7 Migration
+**Challenge**: Prisma 7 removed the `url` property from schema.prisma
+**Solution**:
+- Move database URL to `prisma.config.ts` for migrations
+- Use adapter pattern with `PrismaPg` at runtime
+- Pass connection via `new PrismaClient({ adapter })`
+
+**Code Pattern:**
+```typescript
+import { PrismaClient } from "./generated/prisma/client.ts";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
+
+const pool = new pg.Pool({ connectionString: DATABASE_URL });
+const adapter = new PrismaPg(pool);
+export const prisma = new PrismaClient({ adapter });
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+### 2. Monorepo Workspace Dependencies
+**Learning**: Workspace packages need proper configuration
+- Use `workspace:*` for internal dependencies
+- Export prisma client from database package
+- Services import only from `@repo/database`, not direct Prisma packages
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+### 3. Runtime Compatibility
+**Issue**: tsx (Node.js) had runtime errors with Prisma 7 generated code
+**Solution**: Use Bun's native TypeScript support
+- Changed from `tsx watch` to `bun --watch`
+- Bun handles Prisma 7's TypeScript generation correctly
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
+### 4. Service Communication Pattern
+**Pattern**: Gateway → Service communication via HTTP
+```typescript
+// Gateway proxies to auth service
+const response = await axios.post<LoginResponse>(
+  "http://localhost:3001/login",
+  body
+);
 ```
 
-Without global `turbo`:
+### 5. Type Safety Across Services
+**Pattern**: Shared types package ensures consistency
+```typescript
+// packages/shared-types
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
 
-```sh
-npx turbo link
-bun exec turbo link
-bun exec turbo link
+// Used in both gateway and auth-service
+import { LoginRequest } from "@repo/shared-types";
 ```
 
-## Useful Links
+### 6. Database Migration Workflow
+**Commands**:
+- `bunx prisma migrate dev` - Create and apply migrations
+- `bunx prisma migrate reset` - Reset database (requires consent for AI safety)
+- `bunx prisma generate` - Generate Prisma Client
+- `bunx prisma studio` - Visual database editor
 
-Learn more about the power of Turborepo:
+## What's Next (Remaining 85%)
 
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+### Phase 2: Video Service
+- Video upload endpoint
+- YouTube URL processing
+- Video metadata extraction
+- Queue integration
+
+### Phase 3: Message Queue
+- Redis or RabbitMQ setup
+- Job queue for video processing
+- Task distribution to workers
+
+### Phase 4: Transcription Worker
+- Speech-to-text integration (Whisper API / AssemblyAI)
+- Process videos from queue
+- Store transcripts in database
+
+### Phase 5: AI Summary Worker
+- OpenAI/Claude API integration
+- Generate summaries from transcripts
+- Save results to database
+
+### Phase 6: WebSocket Gateway
+- Real-time status updates
+- Worker event streaming
+- Frontend notifications
+
+### Phase 7: Frontend
+- React/Next.js interface
+- Video upload UI
+- Real-time progress tracking
+- Display transcripts & summaries
+
+## Development Commands
+
+```bash
+# Install dependencies
+bun install
+
+# Run all services in development
+bun run dev
+
+# Build all packages
+bun run build
+
+# Run specific service
+bun run dev --filter=auth-service
+
+# Database commands
+cd packages/database
+bunx prisma migrate dev    # Create migration
+bunx prisma studio         # Open database GUI
+bunx prisma generate       # Regenerate client
+```
+
+## Project Goals & Learning Objectives
+
+1. **Microservices Architecture**: Building loosely coupled services
+2. **Message Queues**: Asynchronous job processing at scale
+3. **Real-time Communication**: WebSocket implementation
+4. **Type Safety**: End-to-end TypeScript across services
+5. **Database Design**: Prisma ORM with PostgreSQL
+6. **API Gateway Pattern**: Centralized routing and authentication
+7. **Worker Pattern**: Background job processing
+8. **Monorepo Management**: Turborepo for efficient builds
+
+## License
+
+MIT
+
+## Author
+
+Built as a learning project to understand distributed systems and microservices architecture.

@@ -7,6 +7,7 @@ import { exec } from "child_process";
 import { prisma } from "@repo/database";
 import  { authMiddleware } from "./middleware/authMiddleware";
 import type { AuthRequest } from "./middleware/authMiddleware";
+import { videoQueue } from "@repo/queue";
 
 const app = express();
 
@@ -23,58 +24,24 @@ app.post("/videos", authMiddleware, async (req: AuthRequest, res) => {
         data: {
           url,
           userId,
-          status: "DOWNLOADING"
+          status: "PENDING"
         }
       });
 
-      const outputDir = path.join(process.cwd(), "downloads");
-
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir);
-      }
-
-      const outputPath = path.join(
-        outputDir,
-        `${video.id}.mp4`
+      await videoQueue.add(
+        "download-video",
+        {
+          videoId: video.id,
+          url
+        }
       );
-
-      const command = `yt-dlp -f mp4 -o "${outputPath}" "${url}"`;
-
-      exec(command, async (error) => {
-
-        if (error) {
-
-          console.error(error);
-
-          await prisma.video.update({
-            where: {
-              id: video.id
-            },
-            data: {
-              status: "FAILED"
-            }
-          });
-
-          return;
-        }
-
-        await prisma.video.update({
-          where: {
-            id: video.id
-          },
-          data: {
-            status: "DOWNLOADED",
-            localPath: outputPath
-          }
-        });
-      });
 
       return res.json({
         success: true,
         videoId: video.id
       });
     } catch (error) {
-        console.error(error);
+      console.error(error);
 
       return res.status(500).json({
         success: false,

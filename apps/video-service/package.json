@@ -6,6 +6,7 @@
   },
   "dependencies": {
     "@repo/database": "workspace:*",
+    "@repo/queue": "workspace:*",
     "cors": "^2.8.5",
     "express": "^5.0.0",
     "jsonwebtoken": "^9.0.2"

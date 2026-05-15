@@ -1,8 +1,5 @@
 import express from "express";
 import cors from "cors";
-import fs from "fs";
-import path from "path";
-import { exec } from "child_process";
 
 import { prisma } from "@repo/database";
 import  { authMiddleware } from "./middleware/authMiddleware";

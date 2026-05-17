@@ -29,6 +29,8 @@ model Video {
   status      String   @default("PENDING")
   localPath   String?
 
+  transcript  String?
+  summary     String?
   userId      String
   user        User     @relation(fields: [userId], references: [id])
 

@@ -29,7 +29,8 @@ app.post("/videos", authMiddleware, async (req: AuthRequest, res) => {
         "download-video",
         {
           videoId: video.id,
-          url
+          url,
+          userId
         }
       );
 

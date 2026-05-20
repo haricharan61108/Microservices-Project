@@ -9,6 +9,7 @@ import YTDlpWrap from "yt-dlp-wrap";
 import { prisma } from "@repo/database";
 
 import WebSocket from "ws";
+import { transcriptQueue } from "@repo/queue";
 
 let ws: WebSocket | null = null;
 let reconnectAttempts = 0;
@@ -136,6 +137,15 @@ const connection = new IORedis({
           videoId,
           status: "DOWNLOADED"
         });
+
+        await transcriptQueue.add(
+          "generate-transcript",
+          {
+            videoId,
+            userId,
+            localPath: outputPath
+          }
+        );
   
       } catch (error) {
   

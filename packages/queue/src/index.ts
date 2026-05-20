@@ -13,3 +13,10 @@ const connection = new IORedis({
         connection
     }
   )
+
+  export const transcriptQueue = new Queue(
+    "transcript-processing",
+    {
+      connection
+    }
+  )

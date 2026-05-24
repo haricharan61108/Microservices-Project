@@ -1,6 +1,7 @@
 import { Worker } from "bullmq";
 import IORedis from "ioredis";
 import path from "path";
+import { summarizationQueue } from "@repo/queue";
 
 import { exec } from "child_process";
 
@@ -19,7 +20,8 @@ const worker = new Worker(
 
     const {
       videoId,
-      localPath
+      localPath,
+      userId
     } = job.data;
 
     try {
@@ -79,7 +81,16 @@ const worker = new Worker(
           "Transcript Generated"
         );
       });
+      console.log("Adding video to summarization queue:", videoId);
 
+      await summarizationQueue.add(
+        "generate-summary",
+        {
+          videoId,
+          userId
+        }
+      );
+      console.log("Added to summarization queue");
     } catch (error) {
 
       console.error(error);

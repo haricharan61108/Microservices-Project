@@ -33,6 +33,15 @@ model Video {
   summary     String?
   userId      String
   user        User     @relation(fields: [userId], references: [id])
+  summaryStatus SummaryStatus @default(PENDING)
+  summaryError String?
 
   createdAt   DateTime @default(now())
 }
+
+ enum SummaryStatus {
+    PENDING
+    PROCESSING
+    COMPLETED
+    FAILED
+  }

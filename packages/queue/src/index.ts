@@ -20,3 +20,10 @@ const connection = new IORedis({
       connection
     }
   )
+
+  export const summarizationQueue = new Queue(
+    "summarization-processing",
+    {
+      connection
+    }
+  )

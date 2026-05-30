@@ -15,23 +15,19 @@ wss.on("connection", (ws)=> {
     if (data.type === "REGISTER") {
 
         clients.set(data.userId, ws);
-  
+
         console.log(
           `User Registered: ${data.userId}`
         );
-      }
-
-      if(data.type === "VIDEO_STATUS") {
+      } else {
+        // Broadcast all non-REGISTER messages to the target user
         const targetWs = clients.get(data.userId);
 
-        if(targetWs) {
-          targetWs.send(
-            JSON.stringify({
-              type: "VIDEO_STATUS",
-              videoId : data.videoId,
-              status: data.status
-            })
-          )
+        if(targetWs && targetWs.readyState === 1) {
+          targetWs.send(JSON.stringify(data));
+          console.log(`Broadcasting: ${data.type} - ${data.status || 'N/A'}`);
+        } else {
+          console.log(`No client connected for user: ${data.userId}`);
         }
       }
 
@@ -39,6 +35,13 @@ wss.on("connection", (ws)=> {
 
     ws.on("close", () => {
         console.log("Client Disconnected");
+        // Remove disconnected client from map
+        for (const [userId, client] of clients.entries()) {
+          if (client === ws) {
+            clients.delete(userId);
+            console.log(`User ${userId} removed from registry`);
+          }
+        }
       });
 })
 

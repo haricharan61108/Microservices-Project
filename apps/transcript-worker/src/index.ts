@@ -65,7 +65,7 @@ const worker = new Worker(
           return;
         }
 
-     const transcript = stdout;
+        const transcript = stdout;
 
         await prisma.video.update({
           where: {
@@ -80,17 +80,26 @@ const worker = new Worker(
         console.log(
           "Transcript Generated"
         );
-      });
-      console.log("Adding video to summarization queue:", videoId);
 
-      await summarizationQueue.add(
-        "generate-summary",
-        {
-          videoId,
-          userId
-        }
-      );
-      console.log("Added to summarization queue");
+        // Add to summarization queue AFTER saving transcript
+        console.log("Adding video to summarization queue:", videoId);
+
+        await summarizationQueue.add(
+          "generate-summary",
+          {
+            videoId,
+            userId
+          },
+          {
+            attempts: 3,
+            backoff: {
+              type: "exponential",
+              delay: 5000
+            }
+          }
+        );
+        console.log("Added to summarization queue");
+      });
     } catch (error) {
 
       console.error(error);

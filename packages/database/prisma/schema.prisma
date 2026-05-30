@@ -30,11 +30,11 @@ model Video {
   localPath   String?
 
   transcript  String?
-  summary     String?
+  summary     Json?
+  error       String?
+
   userId      String
   user        User     @relation(fields: [userId], references: [id])
-  summaryStatus SummaryStatus @default(PENDING)
-  summaryError String?
 
   createdAt   DateTime @default(now())
 }

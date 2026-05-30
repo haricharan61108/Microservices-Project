@@ -1,6 +1,6 @@
 import { Worker } from "bullmq";
 import IORedis from "ioredis";
-import OpenAI from "openai";
+import { summarizeTranscript } from "@repo/ai";
 import { prisma } from "@repo/database";
 import WebSocket from "ws";
 
@@ -58,10 +58,7 @@ const connection = new IORedis({
   maxRetriesPerRequest: null
 });
 
-// Initialize OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || ""
-});
+
 
 // Create Worker
 const worker = new Worker(
@@ -89,7 +86,7 @@ const worker = new Worker(
       console.log("Fetching transcript for video:",
 videoId);
 
-      // Fetch video with transcript
+      
       const video = await prisma.video.findUnique({
         where: { id: videoId }
       });
@@ -103,29 +100,9 @@ videoId);
 ${videoId}`);
       }
 
-      console.log("Generating summary using OpenAI...");
-
-      // Generate summary using OpenAI
-      const completion = await
-openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "You are a helpful assistant that creates concise, structured summaries of video transcripts. Provide clear key points and insights."
-          },
-          {
-            role: "user",
-            content: `Please summarize the following video 
-transcript:\n\n${video.transcript}`
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 500
-      });
-
-      const summary = completion.choices[0].message.content
-|| "No summary generated";
+      const summary = await summarizeTranscript(
+        video.transcript
+      );
 
       console.log("Summary generated successfully");
 

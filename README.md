@@ -263,7 +263,7 @@ import { LoginRequest } from "@repo/shared-types";
 - Store transcripts in database
 
 ### Phase 5: AI Summary Worker
-- OpenAI/Claude API integration
+- Google Gemini API integration
 - Generate summaries from transcripts
 - Save results to database
 
@@ -318,3 +318,93 @@ MIT
 ## Author
 
 Built as a learning project to understand distributed systems and microservices architecture.
+
+
+
+ Looking at your existing architecture, I can see you've
+  built a well-structured system with workers, queues, and
+   WebSocket updates. Here's a clear breakdown of steps to
+   add AI summarization:
+
+  Architecture Overview
+
+  You'll follow the same pattern as transcript generation:
+  - Transcript Worker completes → adds job to
+  Summarization Queue → Summarization Worker processes →
+  updates database → notifies via WebSocket
+
+  Steps to Implement AI Summarization
+
+  1. Database Schema Updates
+
+  Add summary fields to your Video model:
+  - summary (TEXT, nullable)
+  - summaryStatus (ENUM: 'pending', 'processing',
+  'completed', 'failed')
+  - summaryError (TEXT, nullable)
+  Create a new Prisma migration for these fields.
+
+  2. Create Summarization Worker 
+  (apps/summarization-worker/)
+
+  Follow the same structure as transcript-worker:
+  - Package structure: package.json, src/index.ts
+  - Dependencies: @repo/database, @repo/queue,
+  @repo/socket-events, AI SDK (OpenAI/Anthropic)
+  - Functionality:
+    - Listen to summarizationQueue
+    - Fetch transcript from database
+    - Call LLM API to generate summary
+    - Update database with summary
+    - Emit WebSocket event for completion
+
+  3. Update Queue Package (packages/queue/)
+
+  Add new queue definition:
+  summarizationQueue: Queue<{ videoId: number }>
+
+  4. Update Socket Events (packages/socket-events/)
+
+  Add new event types:
+  - SUMMARIZATION_STARTED
+  - SUMMARIZATION_COMPLETED
+  - SUMMARIZATION_FAILED
+
+  5. Modify Transcript Worker
+
+  After successful transcription:
+  - Add job to summarizationQueue with videoId
+  - Similar to how download-worker adds to transcriptQueue
+
+  6. Update Video Service API
+
+  Add endpoint or extend existing ones to:
+  - Return summary and summaryStatus in video responses
+  - Handle status checks for summarization progress
+
+  7. Environment Variables
+
+  Add API keys:
+  GEMINI_API_KEY=your_key
+
+  8. Update Turbo Configuration
+
+  Add summarization-worker to:
+  - Root turbo.json pipeline
+  - Root package.json workspace
+
+  AI Provider
+
+  - Google Gemini 1.5 Flash: Fast, cost-effective, excellent for summarization
+  - Gemini 1.5 Pro: For longer transcripts and higher quality (upgradeable)
+
+  Testing Flow
+
+  1. Upload video → Download → Transcript → Summarization
+  2. WebSocket updates at each stage
+  3. Final video object includes: url, transcript, summary
+
+  This maintains your existing worker pattern and keeps
+  the architecture clean and scalable. Each worker handles
+   one responsibility with clear queue-based
+  communication.

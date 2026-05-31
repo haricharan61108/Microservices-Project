@@ -393,16 +393,146 @@ Built as a learning project to understand distributed systems and microservices 
   - Root turbo.json pipeline
   - Root package.json workspace
 
-  AI Provider
+## AI Summarization Setup (COMPLETED ✅)
 
-  - Google Gemini 1.5 Flash: Fast, cost-effective, excellent for summarization
-  - Gemini 1.5 Pro: For longer transcripts and higher quality (upgradeable)
+The platform now uses **Groq AI** for fast, free video summarization instead of Google Gemini.
 
-  Testing Flow
+### Why Groq?
 
-  1. Upload video → Download → Transcript → Summarization
-  2. WebSocket updates at each stage
-  3. Final video object includes: url, transcript, summary
+We switched from Google Gemini to Groq because:
+- **No billing required** - Completely free with generous limits
+- **No Google Cloud setup** - Simple email signup
+- **Faster inference** - Groq's LPU infrastructure is optimized for speed
+- **Better free tier** - 14,400 requests/day (vs Gemini's 1,500)
+- **No quota issues** - Works immediately after signup
+
+### Getting Your Groq API Key
+
+1. **Sign up at Groq Console**: https://console.groq.com
+2. **No credit card needed** - Just email verification
+3. **Create API Key**:
+   - Click "API Keys" in the sidebar
+   - Click "Create API Key"
+   - Copy the key (starts with `gsk_...`)
+
+### Configuration Steps
+
+1. **Add API key to root `.env` file**:
+```bash
+# In /youtube-ai-platform/.env
+DATABASE_URL="postgresql://user:password@localhost:5432/youtube_ai"
+JWT_SECRET="super-secret-key"
+GROQ_API_KEY="gsk_your_actual_key_here"
+```
+
+2. **Update `turbo.json` to include GROQ_API_KEY**:
+```json
+{
+  "globalEnv": ["DATABASE_URL", "JWT_SECRET", "GROQ_API_KEY"],
+  "tasks": {
+    "dev": {
+      "env": ["DATABASE_URL", "JWT_SECRET", "GROQ_API_KEY"]
+    }
+  }
+}
+```
+
+3. **Restart all services**:
+```bash
+# Stop current services (Ctrl+C)
+npm run dev
+```
+
+### How It Works
+
+**Summary Worker** (`apps/summary-worker/`):
+1. Listens to the `summarization-processing` queue
+2. Fetches video transcript from database
+3. Sends transcript to **Groq API** (using Llama 3.3 70B model)
+4. Receives structured JSON summary with:
+   - Title
+   - Short summary
+   - Key points
+5. Updates database with summary
+6. Broadcasts completion via WebSocket
+
+**AI Model Used**: `llama-3.3-70b-versatile`
+- Fast inference (< 5 seconds for most videos)
+- High-quality summaries
+- JSON response format
+- Temperature: 0.2 (for consistent results)
+
+### Code Implementation
+
+The summarization is powered by the OpenAI SDK (Groq is OpenAI-compatible):
+
+```typescript
+// packages/ai/src/groq.ts
+import OpenAI from "openai";
+
+export const groq = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1",
+});
+
+// packages/ai/src/summarize.ts
+export async function summarizeTranscript(transcript: string) {
+  const completion = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      {
+        role: "system",
+        content: "You are an expert video analyst. Always respond with valid JSON only."
+      },
+      {
+        role: "user",
+        content: `Analyze this transcript and return JSON with: title, shortSummary, keyPoints...`
+      }
+    ],
+    temperature: 0.2,
+    response_format: { type: "json_object" }
+  });
+
+  return completion.choices[0]?.message?.content;
+}
+```
+
+### Testing Flow
+
+**Complete video processing pipeline**:
+1. Upload video URL → Download Worker downloads video
+2. Transcription Worker generates transcript (Whisper AI)
+3. Summary Worker generates AI summary (Groq)
+4. WebSocket updates at each stage
+5. Final video object includes: `url`, `transcript`, `summary`
+
+**Real-time updates via WebSocket**:
+- `SUMMARY_STATUS: PROCESSING` - When summary generation starts
+- `SUMMARY_STATUS: COMPLETED` - When summary is ready
+- `SUMMARY_STATUS: FAILED` - If there's an error
+
+### Troubleshooting
+
+**Issue**: `AuthenticationError: 401 Invalid API Key`
+
+**Solutions**:
+1. ✅ Verify `GROQ_API_KEY` is in root `.env` file
+2. ✅ Ensure `GROQ_API_KEY` is added to `turbo.json` env arrays
+3. ✅ Restart all services after adding the key
+4. ✅ Check the key starts with `gsk_` (not `AQ.` which is Gemini format)
+
+**Issue**: Gemini quota errors
+
+**Solution**: We've completely switched to Groq - no more Gemini quota issues!
+
+### Free Tier Limits (Groq)
+
+- **Requests per minute**: 30
+- **Requests per day**: 14,400
+- **Tokens per minute**: 20,000
+- **Cost**: $0 (completely free)
+
+This is more than enough for most development and small production use cases.
 
   This maintains your existing worker pattern and keeps
   the architecture clean and scalable. Each worker handles

@@ -1,16 +1,16 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["DATABASE_URL", "JWT_SECRET"],
+  "globalEnv": ["DATABASE_URL", "JWT_SECRET", "GROQ_API_KEY"],
   "tasks": {
     "dev": {
       "cache": false,
       "persistent": true,
-      "env": ["DATABASE_URL", "JWT_SECRET"]
+      "env": ["DATABASE_URL", "JWT_SECRET", "GROQ_API_KEY"]
     },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
-      "env": ["DATABASE_URL"]
+      "env": ["DATABASE_URL", "GROQ_API_KEY"]
     }
   }
 }

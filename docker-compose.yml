@@ -1,0 +1,169 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: youtube-ai-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: haricharan1111
+      POSTGRES_DB: finance-backend
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Message Queue
+  redis:
+    image: redis:7-alpine
+    container_name: youtube-ai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway
+  gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+    container_name: youtube-ai-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - VIDEO_SERVICE_URL=http://video-service:3002
+    depends_on:
+      - auth-service
+      - video-service
+    restart: unless-stopped
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: apps/auth-service/Dockerfile
+    container_name: youtube-ai-auth
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:haricharan1111@postgres:5432/finance-backend
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Video Service
+  video-service:
+    build:
+      context: .
+      dockerfile: apps/video-service/Dockerfile
+    container_name: youtube-ai-video
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:haricharan1111@postgres:5432/finance-backend
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - video_downloads:/app/apps/video-service/downloads
+    restart: unless-stopped
+
+  # Socket Service
+  socket-service:
+    build:
+      context: .
+      dockerfile: apps/socket-service/Dockerfile
+    container_name: youtube-ai-socket
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  # Download Worker
+  download-worker:
+    build:
+      context: .
+      dockerfile: apps/download-worker/Dockerfile
+    container_name: youtube-ai-download-worker
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:haricharan1111@postgres:5432/finance-backend
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SOCKET_SERVICE_URL=http://socket-service:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - video_downloads:/app/apps/download-worker/downloads
+    restart: unless-stopped
+
+  # Transcript Worker
+  transcript-worker:
+    build:
+      context: .
+      dockerfile: apps/transcript-worker/Dockerfile
+    container_name: youtube-ai-transcript-worker
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:haricharan1111@postgres:5432/finance-backend
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - video_downloads:/app/apps/download-worker/downloads
+    restart: unless-stopped
+
+  # Summary Worker
+  summary-worker:
+    build:
+      context: .
+      dockerfile: apps/summary-worker/Dockerfile
+    container_name: youtube-ai-summary-worker
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:haricharan1111@postgres:5432/finance-backend
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - SOCKET_SERVICE_URL=http://socket-service:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+# Persistent volumes
+volumes:
+  postgres_data:
+  redis_data:
+  video_downloads:

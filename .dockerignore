@@ -1,0 +1,11 @@
+node_modules
+  dist
+  build
+  .git
+  .env
+  *.log
+  .DS_Store
+  apps/*/downloads
+  apps/*/node_modules
+  packages/*/node_modules
+  apps/transcript-worker/venv_py313

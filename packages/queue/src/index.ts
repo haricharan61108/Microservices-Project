@@ -2,8 +2,8 @@ import { Queue } from "bullmq";
 import IORedis from "ioredis";
 
 const connection = new IORedis({
-    host: "localhost",
-    port: 6379,
+    host: process.env.REDIS_HOST || "localhost",
+    port: parseInt(process.env.REDIS_PORT || "6379"),
     maxRetriesPerRequest: null
   });
 

@@ -2,13 +2,23 @@ import express from "express";
 import cors from "cors";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { logger, HealthCheck } from "@repo/logger";
 
 import { prisma } from "@repo/database";
 
 const app = express();
+const healthCheck = new HealthCheck("auth-service");
 
 app.use(cors());
 app.use(express.json());
+
+app.get("/health",
+  healthCheck.handler.bind(healthCheck));
+  app.get("/ready",
+  healthCheck.readinessHandler.bind(healthCheck));
+  app.get("/live",
+  healthCheck.livenessHandler.bind(healthCheck));
+
 
 app.post("/register", async (req, res) => {
 
@@ -113,5 +123,5 @@ app.post("/login", async (req, res) => {
 });
 
 app.listen(3001, () => {
-  console.log("Auth Service running on port 3001");
+  logger.info("Auth Service running on port 3001");
 });

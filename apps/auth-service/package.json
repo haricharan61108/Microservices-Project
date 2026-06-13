@@ -6,7 +6,9 @@
   },
   "dependencies": {
     "@repo/database": "workspace:*",
+    "@repo/logger": "workspace:*",
     "@repo/shared-types": "workspace:*",
+    "axios": "^1.17.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "express": "^5.0.0",

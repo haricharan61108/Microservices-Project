@@ -6,6 +6,7 @@
   },
   "dependencies": {
     "@repo/shared-types": "workspace:*",
+    "@repo/logger": "workspace:*",
     "@types/cors": "^2.8.19",
     "axios": "^1.16.0",
     "cors": "^2.8.6",

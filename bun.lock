@@ -22,7 +22,9 @@
       "name": "auth-service",
       "dependencies": {
         "@repo/database": "workspace:*",
+        "@repo/logger": "workspace:*",
         "@repo/shared-types": "workspace:*",
+        "axios": "^1.17.0",
         "bcryptjs": "^3.0.3",
         "cors": "^2.8.5",
         "express": "^5.0.0",
@@ -53,6 +55,7 @@
     "apps/gateway": {
       "name": "gateway",
       "dependencies": {
+        "@repo/logger": "workspace:*",
         "@repo/shared-types": "workspace:*",
         "@types/cors": "^2.8.19",
         "axios": "^1.16.0",
@@ -521,7 +524,7 @@
 
     "aws-ssl-profiles": ["aws-ssl-profiles@1.1.2", "", {}, "sha512-NZKeq9AfyQvEeNlN0zSYAaWrmBffJh3IELMZfRpJVWgrpEbtEpnjvzqBPf+mxoI287JohRDoa+/nsfqqiZmF6g=="],
 
-    "axios": ["axios@1.16.1", "", { "dependencies": { "follow-redirects": "^1.16.0", "form-data": "^4.0.5", "https-proxy-agent": "^5.0.1", "proxy-from-env": "^2.1.0" } }, "sha512-caYkukvroVPO8KrzuJEb50Hm07KwfBZPEC3VeFHTsqWHvKTsy54hjJz9BS/cdaypROE2rH6xvm9mHX4fgWkr3A=="],
+    "axios": ["axios@1.17.0", "", { "dependencies": { "follow-redirects": "^1.16.0", "form-data": "^4.0.5", "https-proxy-agent": "^5.0.1", "proxy-from-env": "^2.1.0" } }, "sha512-J8SwNxprqqpbfenehxWYXE7CW+wM1BB4w3+N+g+/Wx40xM4rsLrfPmHHxSWIxJLYDgSY/HqlFPIYb2/S3rxafw=="],
 
     "balanced-match": ["balanced-match@1.0.2", "", {}, "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw=="],
 

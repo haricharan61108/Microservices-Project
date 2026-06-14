@@ -1,4 +1,19 @@
 import { WebSocketServer } from "ws";
+import express from "express";
+import { logger, HealthCheck } from "@repo/logger";
+
+// Health check setup
+const app = express();
+const healthCheck = new HealthCheck("socket-service");
+
+app.get("/health", healthCheck.handler.bind(healthCheck));
+app.get("/ready", healthCheck.readinessHandler.bind(healthCheck));
+app.get("/live", healthCheck.livenessHandler.bind(healthCheck));
+
+const HEALTH_PORT = 3005;
+app.listen(HEALTH_PORT, () => {
+  logger.info(`Socket Service health check running on port ${HEALTH_PORT}`);
+});
 
 const wss = new WebSocketServer({
     port: 8080
@@ -45,8 +60,6 @@ wss.on("connection", (ws)=> {
       });
 })
 
-console.log(
-  "Socket Service running on port 8080"
-);
+logger.info("Socket Service running on port 8080");
 
 export { clients };

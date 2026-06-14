@@ -5,11 +5,17 @@ import { prisma } from "@repo/database";
 import  { authMiddleware } from "./middleware/authMiddleware";
 import type { AuthRequest } from "./middleware/authMiddleware";
 import { videoQueue } from "@repo/queue";
+import { logger, HealthCheck } from "@repo/logger";
 
 const app = express();
+const healthCheck = new HealthCheck("video-service");
 
 app.use(cors());
 app.use(express.json());
+
+app.get("/health", healthCheck.handler.bind(healthCheck));
+app.get("/ready", healthCheck.readinessHandler.bind(healthCheck));
+app.get("/live", healthCheck.livenessHandler.bind(healthCheck));
 
 app.post("/videos", authMiddleware, async (req: AuthRequest, res) => {
     try {
@@ -49,5 +55,5 @@ app.post("/videos", authMiddleware, async (req: AuthRequest, res) => {
 })
 
 app.listen(3002, () => {
-    console.log("Video Service running on port 3002");
+    logger.info("Video Service running on port 3002");
   });

@@ -2,6 +2,8 @@ import { Worker } from "bullmq";
 import IORedis from "ioredis";
 import path from "path";
 import { summarizationQueue } from "@repo/queue";
+import express from "express";
+import { logger, HealthCheck } from "@repo/logger";
 
 import { exec } from "child_process";
 
@@ -11,6 +13,19 @@ const connection = new IORedis({
   host: "localhost",
   port: 6379,
   maxRetriesPerRequest: null
+});
+
+// Health check setup
+const app = express();
+const healthCheck = new HealthCheck("transcript-worker");
+
+app.get("/health", healthCheck.handler.bind(healthCheck));
+app.get("/ready", healthCheck.readinessHandler.bind(healthCheck));
+app.get("/live", healthCheck.livenessHandler.bind(healthCheck));
+
+const HEALTH_PORT = 3003;
+app.listen(HEALTH_PORT, () => {
+  logger.info(`Transcript Worker health check running on port ${HEALTH_PORT}`);
 });
 
 const worker = new Worker(
@@ -111,6 +126,4 @@ const worker = new Worker(
   }
 );
 
-console.log(
-  "Transcript Worker Started"
-);
+logger.info("Transcript Worker Started");

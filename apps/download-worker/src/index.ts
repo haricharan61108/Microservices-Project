@@ -10,6 +10,8 @@ import { prisma } from "@repo/database";
 
 import WebSocket from "ws";
 import { transcriptQueue } from "@repo/queue";
+import express from "express";
+import { logger, HealthCheck } from "@repo/logger";
 
 let ws: WebSocket | null = null;
 let reconnectAttempts = 0;
@@ -61,9 +63,22 @@ const connection = new IORedis({
     port: 6379,
     maxRetriesPerRequest: null
   });
-  
+
   const ytDlpWrap = new YTDlpWrap();
-  
+
+  // Health check setup
+  const app = express();
+  const healthCheck = new HealthCheck("download-worker");
+
+  app.get("/health", healthCheck.handler.bind(healthCheck));
+  app.get("/ready", healthCheck.readinessHandler.bind(healthCheck));
+  app.get("/live", healthCheck.livenessHandler.bind(healthCheck));
+
+  const HEALTH_PORT = 3004;
+  app.listen(HEALTH_PORT, () => {
+    logger.info(`Download Worker health check running on port ${HEALTH_PORT}`);
+  });
+
   const worker = new Worker(
     "video-processing",
   
@@ -173,4 +188,4 @@ const connection = new IORedis({
     }
   );
   
-  console.log("Download Worker Started");
+  logger.info("Download Worker Started");

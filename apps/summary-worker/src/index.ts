@@ -3,6 +3,8 @@ import IORedis from "ioredis";
 import { summarizeTranscript } from "@repo/ai";
 import { prisma } from "@repo/database";
 import WebSocket from "ws";
+import express from "express";
+import { logger, HealthCheck } from "@repo/logger";
 
 // WebSocket connection for real-time updates
 let ws: WebSocket | null = null;
@@ -58,7 +60,18 @@ const connection = new IORedis({
   maxRetriesPerRequest: null
 });
 
+// Health check setup
+const app = express();
+const healthCheck = new HealthCheck("summary-worker");
 
+app.get("/health", healthCheck.handler.bind(healthCheck));
+app.get("/ready", healthCheck.readinessHandler.bind(healthCheck));
+app.get("/live", healthCheck.livenessHandler.bind(healthCheck));
+
+const HEALTH_PORT = 3006;
+app.listen(HEALTH_PORT, () => {
+  logger.info(`Summary Worker health check running on port ${HEALTH_PORT}`);
+});
 
 // Create Worker
 const worker = new Worker(
@@ -154,4 +167,4 @@ videoId);
   }
 );
 
-console.log("Summary Worker Started");
+logger.info("Summary Worker Started");

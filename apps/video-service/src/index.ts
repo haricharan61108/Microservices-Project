@@ -34,11 +34,18 @@ app.post("/videos", authMiddleware, async (req: AuthRequest, res) => {
       await videoQueue.add(
         "download-video",
         {
-          videoId: video.id,
-          url,
-          userId
-        }
-      );
+        videoId: video.id,
+        url,
+        userId
+      }, {
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 5000
+        },
+        removeOnComplete: 1000, 
+        removeOnFail: false  
+      });
 
       return res.json({
         success: true,

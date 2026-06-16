@@ -1,13 +1,9 @@
 import { Queue } from "bullmq";
-import IORedis from "ioredis";
+import { connection } from "./connection";
 
-const connection = new IORedis({
-    host: process.env.REDIS_HOST || "localhost",
-    port: parseInt(process.env.REDIS_PORT || "6379"),
-    maxRetriesPerRequest: null
-  });
+export { connection };
 
-  export const videoQueue = new Queue(
+export const videoQueue = new Queue(
     "video-processing",
     {
         connection
@@ -27,3 +23,14 @@ const connection = new IORedis({
       connection
     }
   )
+
+  export {
+    videoDLQ,
+    transcriptDLQ,
+    summarizationDLQ,
+    moveJobToDLQ,
+    getDLQJobs,
+    replayJobFromDLQ,
+    clearDLQ,
+    type DLQJobData,
+  } from "./dlq";

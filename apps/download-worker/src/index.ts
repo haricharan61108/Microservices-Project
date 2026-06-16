@@ -1,9 +1,8 @@
 import fs from "fs";
 import path from "path";
 
-import { Worker } from "bullmq";
-import IORedis from "ioredis";
-
+import { Worker, Job } from "bullmq";
+import { connection, videoDLQ, moveJobToDLQ } from '@repo/queue';
 import YTDlpWrap from "yt-dlp-wrap";
 
 import { prisma } from "@repo/database";
@@ -57,12 +56,6 @@ function sendWebSocketMessage(message: any) {
 }
 
 connectWebSocket();
-
-const connection = new IORedis({
-    host: "localhost",
-    port: 6379,
-    maxRetriesPerRequest: null
-  });
 
   const ytDlpWrap = new YTDlpWrap();
 
@@ -166,26 +159,48 @@ const connection = new IORedis({
   
         console.error(error);
   
-        await prisma.video.update({
-          where: {
-            id: videoId
-          },
-          data: {
-            status: "FAILED"
-          }
-        });
-        sendWebSocketMessage({
-          type: "VIDEO_STATUS",
-          userId,
-          videoId,
-          status: "FAILED"
-        });
+        throw error;
       }
     },
   
     {
-      connection
+      connection,
     }
   );
+
+  worker.on('failed' , async (job: Job | undefined, err: Error) => {
+    if(!job) {
+      return ;
+    }
+
+    const maxAttempts = job.opts.attempts || 3;
+    if(job.attemptsMade >= maxAttempts) {
+      logger.error(`Job ${job.id} exhausted all retries, moving to DLQ`, {
+        jobId: job.id,
+        attempts: job.attemptsMade,
+        error: err.message
+      });
+      const { videoId, userId } = job.data;
+      await prisma.video.update({
+        where: { id: videoId },
+        data: { status: "FAILED" }
+      });
+
+      sendWebSocketMessage({
+        type: "VIDEO_STATUS",
+        userId,
+        videoId,
+        status: "FAILED"
+      });
+      await moveJobToDLQ(job, videoDLQ, 'video-processing');
+    }
+    else {
+      // Log retry attempt
+      logger.warn(`Job ${job.id} failed (attempt ${job.attemptsMade}/${maxAttempts}), will retry`, {
+        jobId: job.id,
+        error: err.message
+      });
+    }
+  })
   
   logger.info("Download Worker Started");

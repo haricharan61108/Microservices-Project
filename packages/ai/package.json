@@ -7,6 +7,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@repo/circuit-breaker": "*",
     "@google/generative-ai": "^0.21.0"
   },
   "devDependencies": {

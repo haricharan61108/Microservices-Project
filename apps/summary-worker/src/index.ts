@@ -5,6 +5,7 @@ import { prisma } from "@repo/database";
 import WebSocket from "ws";
 import express from "express";
 import { logger, HealthCheck } from "@repo/logger";
+import { CircuitBreaker } from "@repo/circuit-breaker";
 
 // WebSocket connection for real-time updates
 let ws: WebSocket | null = null;
@@ -60,6 +61,15 @@ const connection = new IORedis({
   maxRetriesPerRequest: null
 });
 
+const llmCircuitBreaker = new CircuitBreaker({
+  name: "OpenAI-LLM-Service",
+  failureThreshold: 5,     
+  successThreshold: 2,        
+  timeout: 30000,              
+  failureRateThreshold: 0.5,   
+  minimumRequests: 10    
+});
+
 // Health check setup
 const app = express();
 const healthCheck = new HealthCheck("summary-worker");
@@ -67,6 +77,13 @@ const healthCheck = new HealthCheck("summary-worker");
 app.get("/health", healthCheck.handler.bind(healthCheck));
 app.get("/ready", healthCheck.readinessHandler.bind(healthCheck));
 app.get("/live", healthCheck.livenessHandler.bind(healthCheck));
+app.get("/circuit-breaker/status", (req, res) => {
+  const metrics = llmCircuitBreaker.getMetrics();
+  res.json({
+    service: "OpenAI-LLM-Service",
+    ...metrics
+  });
+});
 
 const HEALTH_PORT = 3006;
 app.listen(HEALTH_PORT, () => {
@@ -113,9 +130,9 @@ videoId);
 ${videoId}`);
       }
 
-      const summary = await summarizeTranscript(
-        video.transcript
-      );
+      const summary = await llmCircuitBreaker.execute(async()=> {
+        return await summarizeTranscript(video.transcript);
+      })
 
       console.log("Summary generated successfully");
 
@@ -144,6 +161,8 @@ videoId);
     } catch (error: any) {
       console.error("Summarization failed:", error);
 
+      const errorMessage = error.name === "CircuitBreakerOpenError"  ? `LLM service temporarily unavailable: ${error.message}`
+      : error.message;
       await prisma.video.update({
         where: { id: videoId },
         data: {
